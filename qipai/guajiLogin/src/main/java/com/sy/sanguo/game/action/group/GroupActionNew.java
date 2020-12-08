@@ -730,11 +730,7 @@ public class GroupActionNew extends GameStrutsAction {
                             if(null!=kolMap){
                                 long _roleType = Long.valueOf(kolMap.get("userRole").toString());//1：会长， 2：副会长，  10000：合伙人 ，
                                 long optUseid = Long.valueOf(kolMap.get("optUserId").toString());
-                                if((_roleType ==1 || _roleType ==2)&& optUseid!=userId){
-                                    //会长副会长踢出去 合伙人不能回群
-                                    OutputUtil.output(6, "该玩家暂时无法被邀请", getRequest(), getResponse(), false);
-                                    return;
-                                }
+
                                 String _strDate = kolMap.get("createdTime").toString();
                                 Date _createdTime = DateUtil.stringToDate(_strDate,"yyyy-MM-dd HH:mm:ss");
                                 Calendar a = Calendar.getInstance();
@@ -743,6 +739,12 @@ public class GroupActionNew extends GameStrutsAction {
                                 Date delayTime =a.getTime();
                                 Date _nowDate = new Date();
                                 String str = DateUtil.dateToString(delayTime,"yyyy-MM-dd HH:mm:ss");
+                                if((_roleType ==1 || _roleType ==2) && _nowDate.before(delayTime) && optUseid!=userId){
+                                    //会长副会长踢出去 合伙人不能回群
+                                    OutputUtil.output(6, "玩家"+str+"前暂时无法邀请", getRequest(), getResponse(), false);
+                                    return;
+                                }
+
                                 if(_roleType==10000 && _nowDate.before(delayTime) &&  optUseid!=userId){
                                     OutputUtil.output(6, "玩家"+str+"前暂时无法邀请", getRequest(), getResponse(), false);
                                     return;
