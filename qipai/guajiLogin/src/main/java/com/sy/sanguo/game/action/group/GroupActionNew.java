@@ -3162,6 +3162,10 @@ public class GroupActionNew extends GameStrutsAction {
                         // 禁止解散
                         key = GroupConstants.groupExtKey_forbiddenDiss;
                         break;
+                    case 14:
+                        // 禁止解散
+                        key = GroupConstants.groupExtKey_forbiddenKickOut;
+                        break;
                 }
                 if (null == key) {
                     OutputUtil.output(4, LangMsg.getMsg(LangMsg.code_3), getRequest(), getResponse(), false);
