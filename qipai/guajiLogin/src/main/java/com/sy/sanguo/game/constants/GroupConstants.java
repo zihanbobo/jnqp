@@ -40,6 +40,7 @@ public class GroupConstants {
      **/
     public static final int GROUP_ROLE_PROMOTOR = 20;
 
+
     /**
      * 群主
      */
@@ -767,6 +768,8 @@ public class GroupConstants {
     public static final String groupExtKey_privateRoom= "privateRoom";
     /*** 亲友圈是否开启：禁止解散***/
     public static final String groupExtKey_forbiddenDiss = "forbiddenDiss";
+    /*** 亲友圈是否开启：禁止踢人限制 0：否，1：是 开启后合伙人踢出的人三天内不能被其他合伙人拉入群***/
+    public static final String groupExtKey_forbiddenKickOut = "forbiddenKickOut";
 
 
     public static Object getGroupExt(String extMsg, String key) {

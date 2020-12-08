@@ -718,32 +718,39 @@ public class GroupActionNew extends GameStrutsAction {
                 return;
             }
 
-            if (!GroupConstants.isHuiZhangOrFuHuiZhang(self.getUserRole())) {
-                //2020年12月2日  被合伙人踢出的亲友圈玩家 三天内 不能被其他合伙人再拉入亲友圈 、会长副会长可以拉
-                List<HashMap<String, Object>> kol = groupDaoNew.loadGroupUserAlertKickOutLog(groupId,userId,3,targetUserId);
-                if(null!=kol && kol.size()==1){
-                    HashMap<String, Object> kolMap = kol.get(0);
-                    if(null!=kolMap){
-                        long _roleType = Long.valueOf(kolMap.get("userRole").toString());//1：会长， 2：副会长，  10000：合伙人 ，
-                        long optUseid = Long.valueOf(kolMap.get("optUserId").toString());
-                        if((_roleType ==1 || _roleType ==2)&& optUseid!=userId){
-                            //会长副会长踢出去 合伙人不能回群
-                            OutputUtil.output(6, "该玩家暂时无法被邀请", getRequest(), getResponse(), false);
-                            return;
+            if(group.getExtMsg().contains(GroupConstants.groupExtKey_forbiddenKickOut)){
+                JSONObject json = StringUtils.isBlank(group.getExtMsg()) ? new JSONObject() : JSONObject.parseObject(group.getExtMsg());
+                String op = json.getString(GroupConstants.groupExtKey_forbiddenKickOut);
+                if(null!=op && op.equals("1")){
+                    if (!GroupConstants.isHuiZhangOrFuHuiZhang(self.getUserRole())) {
+                        //2020年12月2日  被合伙人踢出的亲友圈玩家 三天内 不能被其他合伙人再拉入亲友圈 、会长副会长可以拉
+                        List<HashMap<String, Object>> kol = groupDaoNew.loadGroupUserAlertKickOutLog(groupId,userId,3,targetUserId);
+                        if(null!=kol && kol.size()==1){
+                            HashMap<String, Object> kolMap = kol.get(0);
+                            if(null!=kolMap){
+                                long _roleType = Long.valueOf(kolMap.get("userRole").toString());//1：会长， 2：副会长，  10000：合伙人 ，
+                                long optUseid = Long.valueOf(kolMap.get("optUserId").toString());
+                                if((_roleType ==1 || _roleType ==2)&& optUseid!=userId){
+                                    //会长副会长踢出去 合伙人不能回群
+                                    OutputUtil.output(6, "该玩家暂时无法被邀请", getRequest(), getResponse(), false);
+                                    return;
+                                }
+                                String _strDate = kolMap.get("createdTime").toString();
+                                Date _createdTime = DateUtil.stringToDate(_strDate,"yyyy-MM-dd HH:mm:ss");
+                                Calendar a = Calendar.getInstance();
+                                a.setTime(_createdTime);
+                                a.add(Calendar.DAY_OF_MONTH,3);
+                                Date delayTime =a.getTime();
+                                Date _nowDate = new Date();
+                                String str = DateUtil.dateToString(delayTime,"yyyy-MM-dd HH:mm:ss");
+                                if(_roleType==10000 && _nowDate.before(delayTime) &&  optUseid!=userId){
+                                    OutputUtil.output(6, "玩家"+str+"前暂时无法邀请", getRequest(), getResponse(), false);
+                                    return;
+                                };
+                            }
                         }
-                        String _strDate = kolMap.get("createdTime").toString();
-                        Date _createdTime = DateUtil.stringToDate(_strDate,"yyyy-MM-dd HH:mm:ss");
-                        Calendar a = Calendar.getInstance();
-                        a.setTime(_createdTime);
-                        a.add(Calendar.DAY_OF_MONTH,3);
-                        Date delayTime =a.getTime();
-                        Date _nowDate = new Date();
-                        String str = DateUtil.dateToString(delayTime,"yyyy-MM-dd HH:mm:ss");
-                        if(_roleType==10000 && _nowDate.before(delayTime) &&  optUseid!=userId){
-                            OutputUtil.output(6, "玩家"+str+"前暂时无法邀请", getRequest(), getResponse(), false);
-                            return;
-                        };
                     }
+
                 }
             }
 
