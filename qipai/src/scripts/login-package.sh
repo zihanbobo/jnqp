@@ -6,20 +6,21 @@ echo "---------------------start---------------------"
 #项目前辍
 PROJECT_PREFIX=jnqp
 #svn项目地址
-PROJECT_DIR=/d/work/workspace/jnqp/jnqp-server-2/guajiLogin
+PROJECT_DIR=/d/work/workspace/git/jnqp-1/jnqp/qipai/guajiLogin
 #包输出目录
-OUT_DIR=/c/Users/Administrator/Desktop
+OUT_DIR=/c/Users/Administrator/Desktop/package
+
+#当前目录
+CUR_DIR=`pwd`
+#配置文件，配置需要保留的文件
+PROP_FILE="${CUR_DIR}/login.properties"
+
 #打包的目标目录
 PACKAGE_DIR="${OUT_DIR}/login"
 if [ ! -d ${PACKAGE_DIR} ];then
     cd ${OUT_DIR}
     mkdir "login"
 fi
-
-#当前目录
-CUR_DIR=`pwd`
-#配置文件，配置需要保留的文件
-PROP_FILE="${CUR_DIR}/login.properties"
 
 echo PROJECT_DIR=${PROJECT_DIR}
 echo OUT_DIR=${OUT_DIR}
@@ -45,19 +46,20 @@ done
 
 echo ""
 echo ""
-echo "---------------------svn update---------------------"
+echo "---------------------git update---------------------"
 cd ${PROJECT_DIR}
 
-svn update
+git pull
 
 if [ $? -eq 0 ]; then
-    echo "svn update successful"
+    echo "git update successful"
 else
-    echo "svn update error"
+    echo "git update error"
     exit 1
 fi
 
-SVN_VERSION=`svn info | grep Revision: | awk '{print $2}'`
+#SVN_VERSION=`svn info | grep Revision: | awk '{print $2}'`
+SVN_VERSION=""
 echo SVN_VERSION=${SVN_VERSION}
 
 
