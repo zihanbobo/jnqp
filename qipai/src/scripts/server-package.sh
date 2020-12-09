@@ -6,9 +6,9 @@ echo "---------------------start---------------------"
 #项目前辍
 PROJECT_PREFIX=jnqp
 #svn项目地址
-PROJECT_DIR=/d/work/workspace/git/jnqp-1/jnqp/qipai
+PROJECT_DIR=/d/jnqpServer/jnqp/qipai
 #包输出目录
-OUT_DIR=/c/Users/Administrator/Desktop/package
+OUT_DIR=/d/serverPackages/server
 
 #当前目录
 CUR_DIR=`pwd`
@@ -164,7 +164,7 @@ DATE_STR=`date -d today +%m%d%H%M%S`
 
 cd ${PACKAGE_DIR}
 
-PACKAGE_FILE_NAME="${PROJECT_PREFIX}_server_${DATE_STR}_${SVN_VERSION}.tar.gz"
+PACKAGE_FILE_NAME="${PROJECT_PREFIX}_server_${DATE_STR}.tar.gz"
 tar -zcf ${PACKAGE_FILE_NAME} WEB-INF
 
 if [ $? -eq 0 ]; then
@@ -174,3 +174,5 @@ else
     echo "package project error"
     exit 1
 fi
+
+scp ${PACKAGE_DIR}/${PACKAGE_FILE_NAME} root@182.92.59.24:/data/update
