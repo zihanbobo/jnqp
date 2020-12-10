@@ -78,6 +78,8 @@ public class TaskManager {
 
                 clearLogGroupUserAlert();
 
+                clearUserStatistics();
+
             }
         }, c5.getTime(), 24 * 60 * 60 * 1000);
 
@@ -692,6 +694,32 @@ public class TaskManager {
             maxKeyId = loadMaxKeyIdForLogin(maxKeyIdSql);
             if (maxKeyId > 0) {
                 delSql = "delete from log_group_user_alert where keyId <= " + maxKeyId;
+                deleteDataForLogin(delName, delSql, delLimit);
+            }
+        } catch (Exception e) {
+            LogUtil.e("Exception:" + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 清理t_user_statistics表
+     */
+    private void clearUserStatistics() {
+        SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, -60);
+        String startDate = ymd.format(cal.getTime());
+        String delName = "";
+        String maxKeyIdSql = "";
+        long maxKeyId = 0;
+        String delSql = "";
+        try {
+            // ----------------------------- t_user_statistics ----------------------------------
+            delName = "clearUserStatistics";
+            maxKeyIdSql = " select COALESCE( MAX(keyId),0 ) from t_user_statistics where currentDate < " + startDate + "";
+            maxKeyId = loadMaxKeyIdForLogin(maxKeyIdSql);
+            if (maxKeyId > 0) {
+                delSql = "delete from t_user_statistics where keyId <= " + maxKeyId;
                 deleteDataForLogin(delName, delSql, delLimit);
             }
         } catch (Exception e) {
