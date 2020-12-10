@@ -32,7 +32,7 @@
             overTime = date_add(now(), interval #timeSecond# second)
 		WHERE
 		    lockKey = #lockKey#
-		    AND overTime <![CDATA[ < ]]> now()
+		    AND overTime <![CDATA[ <= ]]> now()
     </update>
 
     <update id="unLock" parameterClass="java.util.HashMap">
