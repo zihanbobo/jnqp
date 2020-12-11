@@ -172,5 +172,3 @@ else
     echo "package project error"
     exit 1
 fi
-
-scp ${PACKAGE_DIR}/${PACKAGE_FILE_NAME} root@182.92.59.24:/data/update

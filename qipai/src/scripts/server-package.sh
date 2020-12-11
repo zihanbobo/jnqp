@@ -91,6 +91,7 @@ cp -r ${TARGET_DIR} ${PACKAGE_DIR}
 #echo ${PACKAGE_DIR}
 rm -rf "${PACKAGE_DIR}/WEB-INF/web.xml"
 rm -rf "${PACKAGE_DIR}/WEB-INF/lib/lombok-1.18.2.jar"
+rm -rf "${PACKAGE_DIR}/WEB-INF/lib/lombok-0.0.17.pom"
 rm -rf "${PACKAGE_DIR}/WEB-INF/lib/game-lib-1.0-SNAPSHOT.jar"
 
 #----------------------删除lib目录下不需要的文件-------------------
@@ -174,5 +175,3 @@ else
     echo "package project error"
     exit 1
 fi
-
-scp ${PACKAGE_DIR}/${PACKAGE_FILE_NAME} root@182.92.59.24:/data/update
