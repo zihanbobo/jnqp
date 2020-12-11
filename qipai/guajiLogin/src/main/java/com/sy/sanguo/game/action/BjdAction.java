@@ -1666,10 +1666,6 @@ public class BjdAction extends GameStrutsAction {
             long goldBeans = NumberUtils.toLong(params.get("goldBeans"), 0);
             int changeType = NumberUtils.toInt(params.get("changeType"), 0);
 
-            if (cards < 0 || freeCards < 0 || golds < 0 || freeGolds < 0 || goldBeans < 0) {
-                response(-2, LangMsg.getMsg(LangMsg.code_3));
-                return;
-            }
             if (changeType <= 20000 || changeType > 30000) {
                 response(-2, LangMsg.getMsg(LangMsg.code_3));
                 return;
@@ -1691,8 +1687,13 @@ public class BjdAction extends GameStrutsAction {
             }
 
             int retCard = 0;
-            if (freeCards > 0 || cards > 0) {
-                retCard = UserDao.getInstance().addUserCards(userId, freeCards, cards, changeType);
+            if (freeCards != 0 || cards != 0) {
+                if(changeType == 20002){
+                    // 指定类型加减钻石，至多减少到0
+                    retCard = UserDao.getInstance().addUserCards1(userId, freeCards, cards, changeType);
+                }else{
+                    retCard = UserDao.getInstance().addUserCards(userId, freeCards, cards, changeType);
+                }
             }
 
             int retGoldBean = 0;

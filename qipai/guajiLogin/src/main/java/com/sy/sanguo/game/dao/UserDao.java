@@ -524,6 +524,74 @@ public class UserDao extends BaseDao {
         return 1;
     }
 
+	public int addUserCards1(long userId, long freeCards, long cards, int sourceType) {
+		return addUserCards1(userId, freeCards, cards, sourceType, 1);
+	}
+
+	private int addUserCards1(long userId, long freeCards, long cards, int sourceType, int tryCount) {
+		long[] longs = loadUserCard(userId);
+		long selfCards = longs[0];
+		long selfFreeCards = longs[1];
+		long oldCards = selfCards;
+		long oldFreeCards = selfFreeCards;
+
+		long minusFreeCards = 0; // 减少的免费钻 freeCards
+		long minusCards = 0; // 减少的充值钻 cards
+		if (cards < 0) {
+			long temp = selfCards + cards;
+			if (temp >= 0) {
+				// 房卡足够
+				minusCards = -cards;
+				selfCards = temp;
+			} else {
+				minusCards = selfCards;
+				selfCards = 0;
+			}
+		} else {
+			selfCards += cards;
+			minusCards = -cards;
+		}
+		if (freeCards < 0) {
+			long temp = selfFreeCards + freeCards;
+			if (temp >= 0) {
+				// 房卡足够
+				minusFreeCards = -freeCards;
+				selfFreeCards = temp;
+			} else {
+				minusFreeCards = selfFreeCards;
+				selfFreeCards = 0;
+			}
+		} else {
+			selfFreeCards += freeCards;
+			minusFreeCards = -freeCards;
+		}
+
+		if (minusCards != 0 || minusFreeCards != 0) {
+			if (changeUserCard(userId, oldCards, oldFreeCards, -minusCards, -minusFreeCards) <= 0) {
+				if (tryCount++ > 20) {
+					LogUtil.i("addUserCards1|fail|" + userId + "|" + freeCards + "|" + cards + "|" + sourceType + "|" + tryCount);
+					return 0;
+				}
+				return addUserCards(userId, freeCards, cards, sourceType, tryCount);
+			} else {
+				LogUtil.i("addUserCards1|succ|" + userId + "|" + freeCards + "|" + cards + "|" + sourceType + "|" + tryCount);
+
+				UserCardRecordInfo record = new UserCardRecordInfo(userId, selfFreeCards, selfCards, (int) -minusFreeCards, (int) -minusCards, sourceType);
+				UserCardRecordDao.getInstance().insert(record);
+				try {
+					RegInfo regInfo = UserDao.getInstance().getUser(userId);
+					if (regInfo != null && regInfo.getEnterServer() > 0 && regInfo.getIsOnLine() == 1) {
+						GameUtil.notifyChangCards(regInfo.getEnterServer(), userId, cards, freeCards, false);
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+
+			}
+		}
+		return 1;
+	}
+
     /**
      * 获取玩家的房卡 0cards，1freeCards
      *
