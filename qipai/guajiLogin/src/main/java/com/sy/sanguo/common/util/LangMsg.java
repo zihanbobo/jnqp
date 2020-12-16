@@ -37,6 +37,7 @@ public final class LangMsg {
     public static final String code_23 = "code_23";//操作失败：模式不存在
     public static final String code_24 = "code_24";//操作失败：没有找到该房间
     public static final String code_25 = "code_25";//操作失败：没有找到该玩家
+    public static final String code_26 = "code_26";//操作失败：已绑定，不可重复绑定
     /**
      * 提示消息缓存
      */
