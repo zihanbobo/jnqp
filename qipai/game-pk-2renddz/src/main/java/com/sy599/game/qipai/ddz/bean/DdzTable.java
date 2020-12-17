@@ -98,6 +98,7 @@ public class DdzTable extends BaseTable {
 	private volatile int sel_jiabeiBeiShu =1;
 	private volatile int isCt = 0;
 
+	private volatile String  restcards ="";
 
 //	private int remove34;
 
@@ -745,7 +746,7 @@ public class DdzTable extends BaseTable {
 		wrapper.putInt(38, bankRangPaiNumBeiShu);
 		wrapper.putInt(39, callSeat);
 		wrapper.putInt(40, dpBeiShu);
-
+		wrapper.putString(41, restcards);
 		return wrapper;
 	}
 	@Override
@@ -807,6 +808,7 @@ public class DdzTable extends BaseTable {
 		bankRangPaiNumBeiShu=wrapper.getInt(38, 1);
 		callSeat =wrapper.getInt(39, 0);
 		dpBeiShu =wrapper.getInt(40, 0);
+		restcards =wrapper.getString(41);
 
 		// res.addExt( boomBeiShu*qiangDzBeiShu*dpBeiShu*sel_jiabeiBeiShu*bankRangPaiNumBeiShu);  // 22总倍数
 	}
@@ -878,11 +880,15 @@ public class DdzTable extends BaseTable {
 				}
 
 			}
+			finishFapai = 1;
+			restcards = fplist.get(2).toString();
 		}
 //		for (DdzPlayer player :seatMap.values()) {
 //			player.dealHandPais(player.getHandPais().subList(0,2), this);
 //		}
-		finishFapai = 1;
+		//小结算记录
+
+
 	}
 
 	@Override
@@ -1494,6 +1500,7 @@ public class DdzTable extends BaseTable {
 		refapainum =0;
 		boomBeiShu =1;
 		sel_jiabeiBeiShu=1;
+		restcards ="";
 		setCt(0);
 	}
 
@@ -2116,13 +2123,14 @@ public class DdzTable extends BaseTable {
 		if (over && isGroupRoom() && !isCreditTable()) {
 			res.setGroupLogId((int) saveUserGroupPlaylog());
 		}
-
+		res.addExt(restcards );//2020年12月10日 2人斗地主小结算显示未发出来的排
 		for (DdzPlayer player : seatMap.values()) {
 			if(over){
 				player.setTotalPoint(player.getPlayPoint());
 			}
 			player.writeSocket(res.build());
 		}
+
 
 		return res;
 	}
