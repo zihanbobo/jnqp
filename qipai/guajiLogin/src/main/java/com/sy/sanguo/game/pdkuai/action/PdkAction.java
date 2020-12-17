@@ -778,13 +778,13 @@ public class PdkAction extends GameStrutsAction {
 				return;
 			}
 
-			int gameType = this.getInt("gameType", 0);
-			long tableId = this.getLong("tableId", 0);
-			long userId = this.getLong("userId", 0);
+			int gameType = NumberUtils.toInt("gameType", 0);
+			long tableId = NumberUtils.toLong("tableId", 0);
+			long userId = NumberUtils.toLong("userId", 0);
 
-			long modeId = this.getLong("modeId", 0);//牌局模式ID，创建房间参数具体信息需查看数据库
+			long modeId = NumberUtils.toLong("modeId", 0);//牌局模式ID，创建房间参数具体信息需查看数据库
 
-			int serverType = this.getInt("serverType", 1);//游戏服类型0练习场1普通场
+			int serverType = NumberUtils.toInt("serverType", 1);//游戏服类型0练习场1普通场
 
 			StringBuilder strBuilder = new StringBuilder("load server:");
 			strBuilder.append("gameType=").append(gameType);
