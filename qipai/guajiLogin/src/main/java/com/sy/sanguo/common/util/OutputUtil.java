@@ -2,6 +2,7 @@ package com.sy.sanguo.common.util;
 
 import com.sy.mainland.util.PropertiesCacheUtil;
 import com.sy.sanguo.common.init.InitData;
+import com.sy.sanguo.game.utils.HttpDataUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,6 +88,9 @@ public class OutputUtil {
 					else
 						value = value.replace("军团","俱乐部");
 				}
+			}
+			if (HttpDataUtil.isSwitchOn() && !isWeb && !"true".equalsIgnoreCase(crossdomain)) {
+				value = HttpDataUtil.aesEncryptHttpData(value);
 			}
 
 			PrintWriter pw = response.getWriter();

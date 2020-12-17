@@ -1,6 +1,7 @@
 package com.sy.sanguo.game.pdkuai.action;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.sy.mainland.util.CommonUtil;
 import com.sy.mainland.util.PropertiesCacheUtil;
 import com.sy.sanguo.common.log.GameBackLogger;
@@ -367,61 +368,60 @@ public class PdkAction extends GameStrutsAction {
 	/**
 	 * 玩家分享
 	 */
-	public String share() {
-		if (!checkPdkSign()) {
-			return StringResultType.RETURN_ATTRIBUTE_NAME;
-		}
+	public void share() {
+		Map<String, String> params = null;
 		try {
-			long userId = this.getLong("userId", 0);
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("getBackStageManagement|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
+			}
+			long userId = NumberUtils.toLong(params.get("userId"), 0);
 			RegInfo info;
 			if (userId != 0) {
 				try {
 					// 验证玩家
 					info = userDao.getUser(userId);
 					if (info == null) {
-						this.writeErrMsg("没有找到玩家");
-						return StringResultType.RETURN_ATTRIBUTE_NAME;
+						OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_25), getRequest(), getResponse(), false);
+						return;
 					}
 
-					Map<String, Object> result = new HashMap<String, Object>();
 					Calendar now = Calendar.getInstance();
 
 					String currentDate = new SimpleDateFormat("yyyy-MM-dd").format(now.getTime());
 
 					List<UserShare> lists = UserShareDao.getInstance().getUserShare(userId,currentDate);
-                    if(lists != null && lists.size() > 0) {
-                        result.put("msg", "已经领取过分享奖励");
-                        return StringResultType.RETURN_ATTRIBUTE_NAME;
-                    }
+					if(lists != null && lists.size() > 0) {
+						OutputUtil.output(-1, "已经领取过分享奖励", getRequest(), getResponse(), false);
+						return;
+					}
 
-                    int gold = ResourcesConfigsUtil.loadIntegerValue("ServerConfig", "gold_award_share",600);
-                    if (gold>0) {
-                        UserShare userShare = new UserShare();
-                        userShare.setUserId(userId);
-                        userShare.setShareDate(now.getTime());
-                        userShare.setDiamond(gold);
-                        userShare.setExtend("gold");
-                        UserShareDao.getInstance().addUserShare(userShare);
+					int gold = ResourcesConfigsUtil.loadIntegerValue("ServerConfig", "gold_award_share",600);
+					if (gold>0) {
+						UserShare userShare = new UserShare();
+						userShare.setUserId(userId);
+						userShare.setShareDate(now.getTime());
+						userShare.setDiamond(gold);
+						userShare.setExtend("gold");
+						UserShareDao.getInstance().addUserShare(userShare);
 
-                        GoldDao.getInstance().addUserGold(userId,gold,0, SourceType.share_award);
-
-                        result.put("msg", "分享奖励金币*：" + gold);
-                        result.put("gold", gold);
-                        this.writeMsg(0, result);
-                    } else {
-                        this.writeErrMsg("");
-                    }
-
+						GoldDao.getInstance().addUserGold(userId,gold,0, SourceType.share_award);
+						JSONObject json = new JSONObject();
+						json.put("msg", "分享奖励金币*：" + gold);
+						json.put("gold", gold);
+						OutputUtil.output(0, json, getRequest(), getResponse(), false);
+					}
 				} catch (Exception e) {
-                    GameBackLogger.SYS_LOG.error("share|error|" + userId, e);
+					GameBackLogger.SYS_LOG.error("share|error|" + userId, e);
 				}
-			} else {
-				this.writeErrMsg("");
 			}
-		} catch (NumberFormatException e) {
-			this.writeErrMsg(LangMsg.getMsg(LangMsg.code_3));
+		} catch (Exception e) {
+			LOGGER.error("error|" + e.getMessage(), e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
@@ -629,7 +629,7 @@ public class PdkAction extends GameStrutsAction {
 		String hasMinProgram = getString("hasMinProgram");
 		if ("1".equals(hasMinProgram)){
 			payTypes = SystemCommonInfoDao.getInstance().select("defaultPayType","sparePayType","iosPayState","mpDefaultPayType","mpSparePayType");
-			
+
 		}else{
 			payTypes = SystemCommonInfoDao.getInstance().select("defaultPayType","sparePayType","iosPayState");
 		}
@@ -768,147 +768,157 @@ public class PdkAction extends GameStrutsAction {
 	 *
 	 * @return
 	 */
-	public String getServerById() {
-		if (!checkPdkSign()) {
-			return StringResultType.RETURN_ATTRIBUTE_NAME;
-		}
+	public void getServerById() {
+		Map<String, String> params = null;
+		try {
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("getBackStageManagement|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
+			}
 
-		int gameType = this.getInt("gameType", 0);
-		long tableId = this.getLong("tableId", 0);
-		long userId = this.getLong("userId", 0);
+			int gameType = this.getInt("gameType", 0);
+			long tableId = this.getLong("tableId", 0);
+			long userId = this.getLong("userId", 0);
 
-		long modeId = this.getLong("modeId", 0);//牌局模式ID，创建房间参数具体信息需查看数据库
+			long modeId = this.getLong("modeId", 0);//牌局模式ID，创建房间参数具体信息需查看数据库
 
-		int serverType = this.getInt("serverType", 1);//游戏服类型0练习场1普通场
+			int serverType = this.getInt("serverType", 1);//游戏服类型0练习场1普通场
 
-		StringBuilder strBuilder=new StringBuilder("load server:");
-		strBuilder.append("gameType=").append(gameType);
-		strBuilder.append(",tableId=").append(tableId);
-		strBuilder.append(",userId=").append(userId);
-		strBuilder.append(",modeId=").append(modeId);
-		strBuilder.append(",serverType=").append(serverType);
+			StringBuilder strBuilder = new StringBuilder("load server:");
+			strBuilder.append("gameType=").append(gameType);
+			strBuilder.append(",tableId=").append(tableId);
+			strBuilder.append(",userId=").append(userId);
+			strBuilder.append(",modeId=").append(modeId);
+			strBuilder.append(",serverType=").append(serverType);
 
-		RegInfo info = null;
-		long totalCount=0;
-		if (userId != 0) {
+			RegInfo info = null;
+			long totalCount = 0;
+			if (userId != 0) {
 //			UserGameSite userGameSite = GameSiteDao.getInstance().queryUserGameSite(userId);
 //			if (userGameSite != null && userGameSite.getGameSiteId() > 0 && userGameSite.getRoundNum() > 0) {
 //				this.writeMsg(-1, null);
 //				return StringResultType.RETURN_ATTRIBUTE_NAME;
 //			}
-			try {
-				info = userDao.getUser(userId);
-				if (info!=null){
-					//局数+充值》》》用于用户分级
-					//((-usedCards+cards)/150+totalCount)
-					totalCount=(-info.getUsedCards()+info.getCards())/150+info.getTotalCount();
-				}
-			} catch (SQLException e) {
-				GameBackLogger.SYS_LOG.error("数据库load玩家数据出错,玩家Id:" + userId, e);
-			}
-
-			if (info != null && info.getPlayingTableId() != 0) {
-				tableId = info.getPlayingTableId();
-
-				strBuilder.append(",playingTableId=").append(tableId);
-			}
-		}
-		boolean loadFromCheckNet=true;
-		Server server = null;
-
-		if (tableId<=0&&modeId>0){
-			try {
-				GroupTable groupTable = groupDao.loadRandomGroupTable(modeId);
-
-				if (groupTable!=null){
-					tableId=groupTable.getTableId();
-
-					strBuilder.append(",groupTableId=").append(tableId);
+				try {
+					info = userDao.getUser(userId);
+					if (info != null) {
+						//局数+充值》》》用于用户分级
+						//((-usedCards+cards)/150+totalCount)
+						totalCount = (-info.getUsedCards() + info.getCards()) / 150 + info.getTotalCount();
+					}
+				} catch (SQLException e) {
+					GameBackLogger.SYS_LOG.error("数据库load玩家数据出错,玩家Id:" + userId, e);
 				}
 
-				if (gameType<=0){
-					GroupTableConfig groupTableConfig=groupDao.loadGroupTableConfig(modeId);
-					if (groupTableConfig!=null){
-						gameType = groupTableConfig.getGameType();
+				if (info != null && info.getPlayingTableId() != 0) {
+					tableId = info.getPlayingTableId();
 
-						strBuilder.append(",groupGameType=").append(gameType);
+					strBuilder.append(",playingTableId=").append(tableId);
+				}
+			}
+			boolean loadFromCheckNet = true;
+			Server server = null;
+
+			if (tableId <= 0 && modeId > 0) {
+				try {
+					GroupTable groupTable = groupDao.loadRandomGroupTable(modeId);
+
+					if (groupTable != null) {
+						tableId = groupTable.getTableId();
+
+						strBuilder.append(",groupTableId=").append(tableId);
+					}
+
+					if (gameType <= 0) {
+						GroupTableConfig groupTableConfig = groupDao.loadGroupTableConfig(modeId);
+						if (groupTableConfig != null) {
+							gameType = groupTableConfig.getGameType();
+
+							strBuilder.append(",groupGameType=").append(gameType);
+						}
+					}
+				} catch (Exception e) {
+					LogUtil.e("Exception:" + e.getMessage(), e);
+				}
+			}
+
+			String[] gameUrls = null;
+			int playType = -1;
+			if (tableId != 0) {
+				int serverId;
+				if (tableId < Constants.MIN_GOLD_ID) {
+					serverId = Manager.getInstance().getServerId(tableId);
+				} else {
+					try {
+						GoldRoom goldRoom = GoldRoomDao.getInstance().loadGoldRoom(tableId);
+						serverId = goldRoom != null ? goldRoom.getServerId() : 0;
+					} catch (Exception e) {
+						serverId = 0;
+						LogUtil.e("Exception:" + e.getMessage(), e);
 					}
 				}
-			}catch (Exception e){
-				LogUtil.e("Exception:"+e.getMessage(),e);
-			}
-		}
 
-		String[] gameUrls = null;
-		int playType = -1;
-		if (tableId != 0) {
-			int serverId;
-			if (tableId < Constants.MIN_GOLD_ID){
-				serverId = Manager.getInstance().getServerId(tableId);
-			}else{
-				try {
-					GoldRoom goldRoom = GoldRoomDao.getInstance().loadGoldRoom(tableId);
-					serverId = goldRoom!=null?goldRoom.getServerId():0;
-				}catch (Exception e){
-					serverId=0;
-					LogUtil.e("Exception:"+e.getMessage(),e);
-				}
-			}
-
-			server = SysInfManager.getInstance().getServer(serverId);
-			if (server == null) {
-                gameUrls = CheckNetUtil.loadGameUrl(serverId,totalCount);
-					if (gameUrls!=null){
-						server=new Server();
+				server = SysInfManager.getInstance().getServer(serverId);
+				if (server == null) {
+					gameUrls = CheckNetUtil.loadGameUrl(serverId, totalCount);
+					if (gameUrls != null) {
+						server = new Server();
 						server.setId(serverId);
 						server.setChathost(gameUrls[0]);
-						loadFromCheckNet=false;
-					}else{
-						writeErrMsg("没有找到该房间");
-						return StringResultType.RETURN_ATTRIBUTE_NAME;
+						loadFromCheckNet = false;
+					} else {
+						OutputUtil.output(1, LangMsg.getMsg(LangMsg.code_24), getRequest(), getResponse(), false);
+						return;
 					}
+				}
+				try {
+					Room room = RoomDaoImpl.getInstance().queryRoomByRoomId(tableId);
+					if (room != null) {
+						playType = room.getType();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
-            try {
-                Room room = RoomDaoImpl.getInstance().queryRoomByRoomId(tableId);
-                if(room != null){
-                    playType = room.getType();
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
 
-		if (gameType != 0 && tableId == 0) {
-			// 创建房间的时候
-			server = SysInfManager.loadServer(gameType,serverType);
+			if (gameType != 0 && tableId == 0) {
+				// 创建房间的时候
+				server = SysInfManager.loadServer(gameType, serverType);
+			}
+
+			JSONObject json = new JSONObject();
+			Map<String, Object> serverMap = new HashMap<String, Object>();
+			serverMap.put("serverId", server.getId());
+
+			if (loadFromCheckNet) {
+				serverMap.put("httpUrl", server.getHost());
+				gameUrls = CheckNetUtil.loadGameUrl(server.getId(), totalCount);
+			}
+
+			if (gameUrls == null) {
+				serverMap.put("connectHost", server.getChathost());
+				serverMap.put("connectHost1", "");
+				serverMap.put("connectHost2", "");
+			} else {
+				serverMap.put("connectHost", StringUtils.isNotBlank(gameUrls[0]) ? gameUrls[0] : server.getChathost());
+				serverMap.put("connectHost1", gameUrls[1]);
+				serverMap.put("connectHost2", gameUrls[2]);
+			}
+			serverMap.put("playType", playType);
+			json.put("server", serverMap);
+			json.put("blockIconTime", SharedConstants.blockIconTime);
+			OutputUtil.output(0, json, getRequest(), getResponse(), false);
+
+			strBuilder.append(",result=").append(result);
+			LogUtil.i(strBuilder.toString());
+		}catch (Exception e){
+			LOGGER.error("error|" + e.getMessage(), e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
 
-		Map<String, Object> result = new HashMap<String, Object>();
-		Map<String, Object> serverMap = new HashMap<String, Object>();
-		serverMap.put("serverId", server.getId());
-
-		if (loadFromCheckNet){
-			serverMap.put("httpUrl", server.getHost());
-            gameUrls = CheckNetUtil.loadGameUrl(server.getId(), totalCount);
-		}
-
-		if (gameUrls==null){
-            serverMap.put("connectHost",server.getChathost());
-            serverMap.put("connectHost1","");
-            serverMap.put("connectHost2","");
-        }else{
-			serverMap.put("connectHost",StringUtils.isNotBlank(gameUrls[0])?gameUrls[0]:server.getChathost());
-            serverMap.put("connectHost1",gameUrls[1]);
-            serverMap.put("connectHost2",gameUrls[2]);
-		}
-        serverMap.put("playType", playType);
-		result.put("server", serverMap);
-		result.put("blockIconTime", SharedConstants.blockIconTime);
-		this.writeMsg(0, result);
-
-		strBuilder.append(",result=").append(result);
-		LogUtil.i(strBuilder.toString());
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
@@ -986,76 +996,93 @@ public class PdkAction extends GameStrutsAction {
 		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
-	public String checkIp() {
-		Map<String, Object> serverMap = new HashMap<String, Object>();
-		int serverId = this.getInt("serverId", 0);
-		String connectHost = this.getString("connectHost");
-		String totalCount=getRequest().getParameter("totalCount");
-        if (serverId == 0) {
-			this.writeMsg(-1, serverMap);
-			return StringResultType.RETURN_ATTRIBUTE_NAME;
-		}
+	public void checkIp() {
+		Map<String, String> params = null;
+		try {
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("getBackStageManagement|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
+			}
+			int serverId = NumberUtils.toInt(params.get("serverId"), 0);;
+			String connectHost = params.get("connectHost");
+			String totalCount = params.get("totalCount");
+			if (serverId == 0) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
+			}
 //		SysInfManager.getInstance().checkServerIp(serverId, connectHost);
-		Server server = SysInfManager.getInstance().getServer(serverId);
-		boolean loadFromCheckNet=true;
-		String[] gameUrls=null;
-		if (server==null){
-            gameUrls= CheckNetUtil.loadGameUrl(serverId,NumberUtils.toLong(totalCount,0));
-			loadFromCheckNet=false;
-			server=new Server();
-			server.setId(serverId);
-			if (gameUrls!=null){
-				server.setChathost(gameUrls[0]);
+			Server server = SysInfManager.getInstance().getServer(serverId);
+			boolean loadFromCheckNet = true;
+			String[] gameUrls = null;
+			if (server == null) {
+				gameUrls = CheckNetUtil.loadGameUrl(serverId, NumberUtils.toLong(totalCount, 0));
+				loadFromCheckNet = false;
+				server = new Server();
+				server.setId(serverId);
+				if (gameUrls != null) {
+					server.setChathost(gameUrls[0]);
+				}
 			}
-		}
 
-		if (loadFromCheckNet){
-            gameUrls = CheckNetUtil.loadGameUrl(serverId, NumberUtils.toLong(totalCount,0));
-			if (gameUrls!=null){
-				server.setChathost(gameUrls[0]);
+			if (loadFromCheckNet) {
+				gameUrls = CheckNetUtil.loadGameUrl(serverId, NumberUtils.toLong(totalCount, 0));
+				if (gameUrls != null) {
+					server.setChathost(gameUrls[0]);
+				}
 			}
+			JSONObject json = new JSONObject();
+			if (gameUrls != null) {
+				json.put("connectHost", StringUtils.isNotBlank(gameUrls[0]) ? gameUrls[0] : server.getChathost());
+				json.put("connectHost1", gameUrls[1]);
+				json.put("connectHost2", gameUrls[2]);
+			} else if (StringUtils.isNotBlank(server.getChathost())) {
+				json.put("connectHost", server.getChathost());
+				json.put("connectHost1", "");
+				json.put("connectHost2", "");
+			}
+			OutputUtil.output(0, json, getRequest(), getResponse(), false);
+		}catch (Exception e){
+			LOGGER.error("error|" + e.getMessage(), e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
-
-        if (gameUrls!=null){
-            serverMap.put("connectHost",StringUtils.isNotBlank(gameUrls[0])?gameUrls[0]:server.getChathost());
-            serverMap.put("connectHost1",gameUrls[1]);
-            serverMap.put("connectHost2",gameUrls[2]);
-            this.writeMsg(0, serverMap);
-        }else if (StringUtils.isNotBlank(server.getChathost())){
-			serverMap.put("connectHost", server.getChathost());
-            serverMap.put("connectHost1","");
-            serverMap.put("connectHost2","");
-			this.writeMsg(0, serverMap);
-		}else{
-			this.writeMsg(-1, serverMap);
-		}
-
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
 	 * 回访码查看战绩getPlayBackLog  传入参数  userId:查看玩家ID  logId:回访码ID
 	 * @return
 	 */
-	public String getPlayBackLog() {
-		if (!checkPdkSign()) {
-			return StringResultType.RETURN_ATTRIBUTE_NAME;
+	public void getPlayBackLog() {
+		Map<String, String> params = null;
+		try {
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("getBackStageManagement|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
+			}
+			long userId = NumberUtils.toLong(params.get("userId"), 0);// 查看玩家ID
+			long logId = NumberUtils.toLong(params.get("logId"), 0);// 回访码ID
+			if (userId <= 0 || logId <= 0) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_3), getRequest(), getResponse(), false);
+				return;
+			}
+			List<Long> ids = new ArrayList<>();
+			ids.add(logId);
+			List<UserPlaylog> logList = TableLogDao.getInstance().selectUserLogByLogId(ids);
+			List<UserPlayTableMsg> playLog = Manager.getInstance().buildUserPlayTbaleMsg(logId, logList, userId);
+			JSONObject json = new JSONObject();
+			json.put("playLog", playLog);
+			json.put("userId", userId);
+			json.put("logId", logId);
+			OutputUtil.output(0, json, getRequest(), getResponse(), false);
+		}catch (Exception e){
+			LOGGER.error("error|" + e.getMessage(), e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
-		long userId = this.getLong("userId", 0);// 查看玩家ID
-		long logId = this.getLong("logId", 0);// 回访码ID
-		if(userId <= 0 || logId <= 0) {
-			return StringResultType.RETURN_ATTRIBUTE_NAME;
-		}
-		List<Long> ids = new ArrayList<>();
-		ids.add(logId);
-		List<UserPlaylog> logList = TableLogDao.getInstance().selectUserLogByLogId(ids);
-		List<UserPlayTableMsg> playLog = Manager.getInstance().buildUserPlayTbaleMsg(logId, logList, userId);
-		Map<String, Object> playLogMap = new HashMap<String, Object>();
-		playLogMap.put("playLog", playLog);
-		playLogMap.put("userId", userId);
-		playLogMap.put("logId", logId);
-		this.writeMsg(0, playLogMap);
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
@@ -1063,97 +1090,108 @@ public class PdkAction extends GameStrutsAction {
 	 *
 	 * @return
 	 */
-	public String getUserPlayLog() {
-		if (!checkPdkSign()) {
-			return StringResultType.RETURN_ATTRIBUTE_NAME;
-		}
-		// String flatId = this.getString("flatId", "vkjcx9983071");
-		// String pf = this.getString("pf", "self");
-		long userId = this.getLong("userId", 0);
-		// int viewIndex = this.getInt("viewIndex", -1);
-		long logId = this.getLong("logId", 0);
-		int logType = this.getInt("logType", 0);
-		long searchUserId = this.getLong("searchUserId", 0);
-		if(searchUserId > 0)
-			userId = searchUserId;
-		String wanfas = this.getString("wanfa");
-		List<Integer> wanfaIds = new ArrayList<>();
-		if(!StringUtils.isBlank(wanfas))// 查固定玩法战绩
-			wanfaIds = StringUtil.explodeToIntList(wanfas);
-		RegInfo info;
+	public void getUserPlayLog() {
+		Map<String, String> params = null;
 		try {
-			Map<String, Object> playLogMap = new HashMap<String, Object>();
-			info = userDao.getUser(userId);
-			if (info == null) {
-				this.writeErrMsg("没有找到玩家");
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("getBackStageManagement|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
 			}
-			String record = info.getRecord();
-			List<List<Long>> lists = StringUtil.explodeToLongLists(record);
-			if (lists == null) {
-				playLogMap.put("playLog", Collections.EMPTY_LIST);
-				this.writeMsg(0, playLogMap);
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
-			}
-
-			for (List<Long> tempList:lists){
-				if (tempList.size()>0&&tempList.get(0)==0L){
-					tempList.remove(0);
+			// String flatId = this.getString("flatId", "vkjcx9983071");
+			// String pf = this.getString("pf", "self");
+			long userId = NumberUtils.toLong(params.get("userId"), 0);
+			// int viewIndex = this.getInt("viewIndex", -1);
+			long logId = NumberUtils.toLong(params.get("logId"), 0);
+			int logType = NumberUtils.toInt(params.get("logType"), 0);
+			long searchUserId = NumberUtils.toLong(params.get("searchUserId"), 0);
+			if (searchUserId > 0)
+				userId = searchUserId;
+			String wanfas = params.get("wanfa");
+			List<Integer> wanfaIds = new ArrayList<>();
+			if (!StringUtils.isBlank(wanfas))// 查固定玩法战绩
+				wanfaIds = StringUtil.explodeToIntList(wanfas);
+			RegInfo info;
+			try {
+				JSONObject json = new JSONObject();
+				info = userDao.getUser(userId);
+				if (info == null) {
+					OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_25), getRequest(), getResponse(), false);
+					return;
 				}
-			}
+				String record = info.getRecord();
+				List<List<Long>> lists = StringUtil.explodeToLongLists(record);
+				if (lists == null) {
+					json.put("playLog", Collections.EMPTY_LIST);
+					OutputUtil.output(0, json, getRequest(), getResponse(), false);
+					return;
+				}
 
-			List<Long> selList;
-			// if (viewIndex >= 0) {
-			// Collections.reverse(lists);
-			// if (viewIndex >= lists.size()) {
-			// playLogMap.put("playLog", Collections.EMPTY_LIST);
-			// this.writeMsg(0, playLogMap);
-			// return StringResultType.RETURN_ATTRIBUTE_NAME;
-			// }
-			// selList = lists.get(viewIndex);
-			//
-			// } else
-			//
-			if (logId != 0) {
-				selList = new ArrayList<Long>();
-				for (List<Long> list : lists) {
-					if (list != null && !list.isEmpty() && list.contains(logId)) {
-						selList = list;
+				for (List<Long> tempList : lists) {
+					if (tempList.size() > 0 && tempList.get(0) == 0L) {
+						tempList.remove(0);
 					}
 				}
 
-			} else {
-				// 查看每一大局的最后一局
-				selList = new ArrayList<Long>();
-				for (List<Long> list : lists) {
-					if (list != null && !list.isEmpty()) {
-						selList.add(list.get(list.size() - 1));
+				List<Long> selList;
+				// if (viewIndex >= 0) {
+				// Collections.reverse(lists);
+				// if (viewIndex >= lists.size()) {
+				// playLogMap.put("playLog", Collections.EMPTY_LIST);
+				// this.writeMsg(0, playLogMap);
+				// return StringResultType.RETURN_ATTRIBUTE_NAME;
+				// }
+				// selList = lists.get(viewIndex);
+				//
+				// } else
+				//
+				if (logId != 0) {
+					selList = new ArrayList<Long>();
+					for (List<Long> list : lists) {
+						if (list != null && !list.isEmpty() && list.contains(logId)) {
+							selList = list;
+						}
+					}
+
+				} else {
+					// 查看每一大局的最后一局
+					selList = new ArrayList<Long>();
+					for (List<Long> list : lists) {
+						if (list != null && !list.isEmpty()) {
+							selList.add(list.get(list.size() - 1));
+						}
 					}
 				}
-			}
 
-			List<UserPlaylog> logList = null;
-			if (selList.isEmpty()) {
-				logList = new ArrayList<>();
-			} else {
-				logList = TableLogDao.getInstance().selectUserLogByLogId(selList);
-			}
-			// 筛选一下
-			PlayLogTool.screen(logList, logType, wanfaIds);
+				List<UserPlaylog> logList = null;
+				if (selList.isEmpty()) {
+					logList = new ArrayList<>();
+				} else {
+					logList = TableLogDao.getInstance().selectUserLogByLogId(selList);
+				}
+				// 筛选一下
+				PlayLogTool.screen(logList, logType, wanfaIds);
 
-			if (!logList.isEmpty() && logId == 0) {
-				Collections.reverse(logList);
+				if (!logList.isEmpty() && logId == 0) {
+					Collections.reverse(logList);
+				}
+				List<UserPlayTableMsg> playLog = Manager.getInstance().buildUserPlayTbaleMsg(logId, logList, info.getUserId());
+				json.put("playLog", playLog);
+				json.put("logType", logType);
+				json.put("logId", logId);
+				OutputUtil.output(0, json, getRequest(), getResponse(), false);
+				return;
+			} catch (SQLException e) {
+				GameBackLogger.SYS_LOG.error("getUserPlayLog err", e);
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+				return;
 			}
-			List<UserPlayTableMsg> playLog = Manager.getInstance().buildUserPlayTbaleMsg(logId, logList, info.getUserId());
-			playLogMap.put("playLog", playLog);
-			playLogMap.put("logType", logType);
-			playLogMap.put("logId", logId);
-
-			this.writeMsg(0, playLogMap);
-		} catch (SQLException e) {
-			GameBackLogger.SYS_LOG.error("getUserPlayLog err", e);
+		}catch (Exception e){
+			LOGGER.error("error|" + e.getMessage(), e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
@@ -1723,140 +1761,122 @@ public class PdkAction extends GameStrutsAction {
 	}
 
 
-    /**
-     *
-     * 玩家绑家白金岛代理邀请码
-     *
-     * @return
-     */
-    public String bindBjdAgency() {
+	/**
+	 *
+	 * 玩家绑家白金岛代理邀请码
+	 *
+	 * @return
+	 */
+	public void bindBjdAgency() {
 
-        long userId = this.getLong("userId");
-        String flatId = this.getString("flatId");
-        String paySign = this.getString("paySign");
-        int agencyId = NumberUtils.toInt(this.getString("payBindId"), 0);
-        GameBackLogger.SYS_LOG.info("bindBjdAgency|" + userId + "|" + flatId + "|" + agencyId);
-        if (flatId != null) {
-            flatId = flatId.replace(" ", "+");
-        }
-        Map<String, Object> result = new HashMap<>();
-        if (!StringUtils.isBlank(paySign)) {
-            String payTime = this.getString("payTime");
-            String md5 = MD5Util.getStringMD5(payTime + flatId + userId + "7HGO4K61M8N2D9LARSPU");
-            if (!md5.equals(paySign)) {
-                GameBackLogger.SYS_LOG.info("bindPayAgencyId-->" + JacksonUtil.writeValueAsString(getRequest().getParameterMap()));
-                result.put("msg", "验证失败");
-                this.writeMsg(-1, result);
-                return StringResultType.RETURN_ATTRIBUTE_NAME;
-            }
-        } else {
-            if (!checkPdkSign()) {
-                result.put("msg", "验证失败");
-                this.writeMsg(-1, result);
-                return StringResultType.RETURN_ATTRIBUTE_NAME;
-            }
-        }
+		long userId = this.getLong("userId");
+		String flatId = this.getString("flatId");
+		String paySign = this.getString("paySign");
+		int agencyId = NumberUtils.toInt(this.getString("payBindId"), 0);
+		GameBackLogger.SYS_LOG.info("bindBjdAgency|" + userId + "|" + flatId + "|" + agencyId);
+		if (flatId != null) {
+			flatId = flatId.replace(" ", "+");
+		}
+		Map<String, Object> result = new HashMap<>();
+		if (!StringUtils.isBlank(paySign)) {
+			String payTime = this.getString("payTime");
+			String md5 = MD5Util.getStringMD5(payTime + flatId + userId + "7HGO4K61M8N2D9LARSPU");
+			if (!md5.equals(paySign)) {
+				GameBackLogger.SYS_LOG.info("bindPayAgencyId-->" + JacksonUtil.writeValueAsString(getRequest().getParameterMap()));
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
+			}
+		} else {
+			if (!checkPdkSign()) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
+			}
+		}
+		try {
+			RegInfo user = userDao.getUser(userId);
+			if (user == null) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_25), getRequest(), getResponse(), false);
+				return;
+			}else if (!flatId.equals(user.getFlatId())) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_3), getRequest(), getResponse(), false);
+				return;
+			} else if (user.getPayBindId() > 0) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_26), getRequest(), getResponse(), false);
+				return;
+			}
+			int bindId = BjdUtil.getBindAgency(user);
+			if (bindId > 0) {
+				if (user.getPayBindId() == 0) {
+					// 修复绑定失败的数据
+					Map<String, Object> modify = new HashMap<>();
+					modify.put("userId", user.getUserId());
+					modify.put("payBindId", bindId);
+					modify.put("payBindTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+					userDao.updateUserBindPayId(modify);
+				}
+				if (bindId != agencyId) {
+					result.put("msg", "已绑定支付代理ID：" + bindId);
+					this.writeMsg(-3, result);
+				} else {
+					result.put("msg", "邀请码绑定成功");
+					this.writeMsg(0, result);
+				}
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_26), getRequest(), getResponse(), false);
+				return;
+			}
 
+			String bindRes = BjdUtil.bindAgencyId(user, agencyId);
+			if (!"".equals(bindRes)) {
+				result.put("msg", bindRes);
+				this.writeMsg(-3, result);
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_26), getRequest(), getResponse(), false);
+				return;
+			}
+			GameBackLogger.SYS_LOG.info("bindBjdAgency|" + userId + "|" + agencyId);
 
-//        if (agencyId <= 100000) {
-//            result.put("msg", "请输入正确的邀请码");
-//            this.writeMsg(-6, result);
-//            return StringResultType.RETURN_ATTRIBUTE_NAME;
-//        }
-        try {
-            RegInfo user = userDao.getUser(userId);
-            if (user == null) {
-                result.put("msg", "没有找到ID:" + userId + "的玩家");
-                this.writeMsg(-1, result);
-                return StringResultType.RETURN_ATTRIBUTE_NAME;
-            }
-//            else if (StringUtils.isBlank(user.getIdentity())) {
-//                result.put("msg", "非微信用户无法绑定");
-//                this.writeMsg(-4, result);
-//                return StringResultType.RETURN_ATTRIBUTE_NAME;
-//            }
-            else if (!flatId.equals(user.getFlatId())) {
-                result.put("msg", "flatId与userId不匹配");
-                this.writeMsg(-4, result);
-                return StringResultType.RETURN_ATTRIBUTE_NAME;
-            } else if (user.getPayBindId() > 0) {
-                result.put("msg", "已绑定支付代理ID：" + user.getPayBindId());
-                this.writeMsg(-2, result);
-                return StringResultType.RETURN_ATTRIBUTE_NAME;
-            }
-            int bindId = BjdUtil.getBindAgency(user);
-            if (bindId > 0) {
-                if (user.getPayBindId() == 0) {
-                    // 修复绑定失败的数据
-                    Map<String, Object> modify = new HashMap<>();
-                    modify.put("userId", user.getUserId());
-                    modify.put("payBindId", bindId);
-                    modify.put("payBindTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
-                    userDao.updateUserBindPayId(modify);
-                }
-                if (bindId != agencyId) {
-                    result.put("msg", "已绑定支付代理ID：" + bindId);
-                    this.writeMsg(-3, result);
-                } else {
-                    result.put("msg", "邀请码绑定成功");
-                    this.writeMsg(0, result);
-                }
-                return StringResultType.RETURN_ATTRIBUTE_NAME;
-            }
+			// 本地写入绑定数据
+			Map<String, Object> modify = new HashMap<>();
+			modify.put("userId", user.getUserId());
+			modify.put("payBindId", agencyId);
+			modify.put("payBindTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+			int ret = userDao.updateUserBindPayId(modify);
+			if (ret > 0) {
+				result.put("msg", "邀请码绑定成功");
+			}
 
-            String bindRes = BjdUtil.bindAgencyId(user, agencyId);
-            if (!"".equals(bindRes)) {
-                result.put("msg", bindRes);
-                this.writeMsg(-3, result);
-                return StringResultType.RETURN_ATTRIBUTE_NAME;
-            }
-            GameBackLogger.SYS_LOG.info("bindBjdAgency|" + userId + "|" + agencyId);
+			UserExtendInfo userExtendInfo = userDao.getUserExtendinfByUserId(userId);
+			int status = 0;
+			if (userExtendInfo == null) {
+				status = 1;
+			} else {
+				if (userExtendInfo.getBindSongCard() <= 0) {
+					status = 2;
+				}
+			}
+			boolean giveRoomCard = status > 0 && SharedConstants.bindGiveRoomCards > 0;
+			result.put("giveRoomCard", giveRoomCard ? SharedConstants.bindGiveRoomCards : 0);
+			this.writeMsg(0, result);
+			if (giveRoomCard) {
+				UserMessage message = new UserMessage();
+				message.setUserId(userId);
+				message.setContent("绑定邀请码" + agencyId + "成功，获得房卡 * " + SharedConstants.bindGiveRoomCards);
+				message.setTime(new Date());
 
-            // 本地写入绑定数据
-            Map<String, Object> modify = new HashMap<>();
-            modify.put("userId", user.getUserId());
-            modify.put("payBindId", agencyId);
-            modify.put("payBindTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
-            int ret = userDao.updateUserBindPayId(modify);
-            if (ret > 0) {
-                result.put("msg", "邀请码绑定成功");
-            }
+				int count = UserDao.getInstance().addUserCards(user, 0, SharedConstants.bindGiveRoomCards, 0, null, message, CardSourceType.bindGiveRoomCards);
 
-            UserExtendInfo userExtendInfo = userDao.getUserExtendinfByUserId(userId);
-            int status = 0;
-            if (userExtendInfo == null) {
-                status = 1;
-            } else {
-                if (userExtendInfo.getBindSongCard() <= 0) {
-                    status = 2;
-                }
-            }
-            boolean giveRoomCard = status > 0 && SharedConstants.bindGiveRoomCards > 0;
-            result.put("giveRoomCard", giveRoomCard ? SharedConstants.bindGiveRoomCards : 0);
-            this.writeMsg(0, result);
-            if (giveRoomCard) {
-                UserMessage message = new UserMessage();
-                message.setUserId(userId);
-                message.setContent("绑定邀请码" + agencyId + "成功，获得房卡 * " + SharedConstants.bindGiveRoomCards);
-                message.setTime(new Date());
-
-                int count = UserDao.getInstance().addUserCards(user, 0, SharedConstants.bindGiveRoomCards, 0, null, message, CardSourceType.bindGiveRoomCards);
-
-                if (count > 0) {
-                    if (1 == status) {
-                        userDao.insertUserExtendinf(userId, "", agencyId);
-                    } else if (2 == status) {
-                        userDao.updateUserBindSongCard(userId, agencyId);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            result.put("msg", "系统异常");
-            this.writeMsg(-1, result);
-            GameBackLogger.SYS_LOG.error("error", e);
-        }
-        return StringResultType.RETURN_ATTRIBUTE_NAME;
-    }
+				if (count > 0) {
+					if (1 == status) {
+						userDao.insertUserExtendinf(userId, "", agencyId);
+					} else if (2 == status) {
+						userDao.updateUserBindSongCard(userId, agencyId);
+					}
+				}
+			}
+		} catch (Exception e) {
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_26), getRequest(), getResponse(), false);
+			return;
+		}
+	}
 
 
     public boolean checkSessCode(long userId, String sessCode) throws Exception {
@@ -1967,100 +1987,97 @@ public class PdkAction extends GameStrutsAction {
 	/**
 	 * 打开后台管理界面
 	 */
-	public String getBackStageManagement() {
-		Map<String, Object> result = new HashMap<>();
+	public void getBackStageManagement() {
+		Map<String, String> params = null;
 		try {
-			if (!checkPdkSign()) {
-				this.writeMsg(-1, result);
-				result.put("msg", "验证失败");
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("getBackStageManagement|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
 			}
-			long userId = this.getLong("userId", 0);
+			long userId = NumberUtils.toLong(params.get("userId"), 0);
 			RegInfo user = userDao.getUser(userId);
 			if (user == null) {
-				result.put("msg", "没有找到ID:" + userId + "的玩家");
-				this.writeMsg(-1, result);
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_25), getRequest(), getResponse(), false);
+				return;
 			}
 
-			String payBindId = this.getString("payBindId");
+			String payBindId = params.get("payBindId");
 			List list = userDao.getBindAllUserMsg(Long.parseLong(payBindId));
-			this.result = JacksonUtil.writeValueAsString(list);
+			OutputUtil.output(0, JacksonUtil.writeValueAsString(list), getRequest(), getResponse(), false);
 			LOGGER.info("getBackStageManagement|userReport|succ|");
 		} catch (Exception e) {
-			result.put("msg", "系统异常");
-			this.writeMsg(-1, result);
-			GameBackLogger.SYS_LOG.error("error", e);
+			LOGGER.error("error|" + e.getMessage(), e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
 	 * 打开后台管理界面
 	 */
-	public String getBindOneMsg() {
-		Map<String, Object> result = new HashMap<>();
+	public void getBindOneMsg() {
+		Map<String, String> params = null;
 		try {
-			if (!checkPdkSign()) {
-				this.writeMsg(-1, result);
-				result.put("msg", "验证失败");
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("getBackStageManagement|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
 			}
-			long userId = this.getLong("userId", 0);
+			long userId = NumberUtils.toLong(params.get("userId"), 0);
 			RegInfo user = userDao.getUser(userId);
 			if (user == null) {
-				result.put("msg", "没有找到ID:" + userId + "的玩家");
-				this.writeMsg(-1, result);
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_25), getRequest(), getResponse(), false);
+				return;
 			}
 
-			String payBindId = this.getString("payBindId");
-			Long armId= Long.parseLong(this.getString("armId"));
+			String payBindId = params.get("payBindId");
+			Long armId= NumberUtils.toLong(params.get("armId"),0);
 			Map map = userDao.getBindOneMsg(Long.parseLong(payBindId),armId);
 			if(map==null)
 				map=new HashMap();
-			this.result = JacksonUtil.writeValueAsString(map);
+			OutputUtil.output(0, JacksonUtil.writeValueAsString(map), getRequest(), getResponse(), false);
 			LOGGER.info("getBackStageManagement|userReport|succ|");
 		} catch (Exception e) {
-			result.put("msg", "系统异常");
-			this.writeMsg(-1, result);
-			GameBackLogger.SYS_LOG.error("error", e);
+			LOGGER.error("error|" + e.getMessage(), e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
 	 * 开启亲友圈权限
 	 */
-	public String openCreateGroup() {
-		Map<String, Object> result = new HashMap<>();
+	public void openCreateGroup() {
+		Map<String, String> params = null;
 		try {
-			if (!checkPdkSign()) {
-				this.writeMsg(-1, result);
-				result.put("msg", "验证失败");
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("getBackStageManagement|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
 			}
-			long userId = this.getLong("userId", 0);
+			long userId = NumberUtils.toLong(params.get("userId"), 0);
 			RegInfo user = userDao.getUser(userId);
 			if (user == null) {
-				result.put("msg", "没有找到ID:" + userId + "的玩家");
-				this.writeMsg(-1, result);
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_25), getRequest(), getResponse(), false);
+				return;
 			}
-			Long payBindId= Long.parseLong(this.getString("payBindId"));
+			Long payBindId= NumberUtils.toLong(params.get("payBindId"),0);
 			if(userId==payBindId){
-				Long armId= Long.parseLong(this.getString("armId"));
+				Long armId= NumberUtils.toLong(params.get("armId"),0);
 				userDao.updateUserCreateGroup(armId,userId);
 			}
-			result.put("msg", LangMsg.getMsg(LangMsg.code_0));
-			this.writeMsg(0, result);
+			JSONObject json = new JSONObject();
+			json.put("msg", LangMsg.getMsg(LangMsg.code_0));
+			OutputUtil.output(0, json, getRequest(), getResponse(), false);
 			LOGGER.info("openCreateGroup|userReport|succ|");
 		} catch (Exception e) {
-			result.put("msg", "系统异常");
-			this.writeMsg(-1, result);
-			GameBackLogger.SYS_LOG.error("error", e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
@@ -2108,66 +2125,60 @@ public class PdkAction extends GameStrutsAction {
 	/**
 	 * 打开后台管理界面
 	 */
-	public String queryBindConsumption() {
-		Map<String, Object> result = new HashMap<>();
+	public void queryBindConsumption() {
+		Map<String, String> params = null;
 		try {
-			if (!checkPdkSign()) {
-				this.writeMsg(-1, result);
-				result.put("msg", "验证失败");
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("getBackStageManagement|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
 			}
-			long userId = this.getLong("userId", 0);
+			long userId = NumberUtils.toLong(params.get("userId"), 0);
 			RegInfo user = userDao.getUser(userId);
 			if (user == null) {
-				result.put("msg", "没有找到ID:" + userId + "的玩家");
-				this.writeMsg(-1, result);
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_25), getRequest(), getResponse(), false);
+				return;
 			}
-			Integer payBindId = Integer.parseInt(this.getString("payBindId"));
-			Long dataDate = Long.parseLong(this.getString("dataDate"));
+			Integer payBindId = NumberUtils.toInt(params.get("payBindId"), 0);
+			Long dataDate = NumberUtils.toLong(params.get("dataDate"),0);
 			if(dataDate==null)
 				dataDate=Long.valueOf(new SimpleDateFormat("yyyyMMdd").format(new Date()));
 			List<GroupDayConsumption> list = userDao.getBindAllGroupMsg(payBindId,dataDate);
-			this.result = JacksonUtil.writeValueAsString(list);
+			OutputUtil.output(0, JacksonUtil.writeValueAsString(list), getRequest(), getResponse(), false);
 			LOGGER.info("queryBindConsumption|userReport|succ|");
 		} catch (Exception e) {
-			result.put("msg", "系统异常");
-			this.writeMsg(-1, result);
-			GameBackLogger.SYS_LOG.error("error", e);
+			LOGGER.error("error|" + e.getMessage(), e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
 	 * 绑定邀请码
 	 */
-	public String bindInviteId() {
-		Map<String, Object> result = new HashMap<>();
+	public void bindInviteId() {
+		Map<String, String> params = null;
 		try {
-			if (!checkPdkSign()) {
-				this.writeMsg(-1, result);
-				result.put("msg", "验证失败");
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("bindInviteId|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
 			}
-			long userId = this.getLong("userId", 0);
+			long userId = NumberUtils.toLong(params.get("userId"), 0);
 			RegInfo user = userDao.getUser(userId);
 			if (user == null) {
-				result.put("msg", "没有找到ID:" + userId + "的玩家");
-				this.writeMsg(-1, result);
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_25), getRequest(), getResponse(), false);
+				return;
 			}
-			Integer payBindId = Integer.parseInt(this.getString("payBindId"));
-			if(userDao.updatebindInviteId(payBindId,userId)>0){
-				result.put("msg", LangMsg.getMsg(LangMsg.code_0));
-				LOGGER.info("bindInviteId|userReport|succ|");
-			}else
-				result.put("msg", "操作失败");
-			this.writeMsg(0, result);
+			Integer payBindId = NumberUtils.toInt(params.get("payBindId"),0);
+			userDao.updatebindInviteId(payBindId,userId);
+			OutputUtil.output(0, LangMsg.getMsg(LangMsg.code_0), getRequest(), getResponse(), false);
 		} catch (Exception e) {
-			result.put("msg", "系统异常");
-			this.writeMsg(-1, result);
-			GameBackLogger.SYS_LOG.error("error", e);
+			LOGGER.error("error|" + e.getMessage(), e);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+			return;
 		}
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 }

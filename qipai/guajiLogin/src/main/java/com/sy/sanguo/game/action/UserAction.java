@@ -1259,7 +1259,7 @@ public class UserAction extends GameStrutsAction {
      *
      * @return
      */
-    public String register() {
+    public void register() {
 //        if (!LoginCacheContext.isDebug) {
 //            // 不允许注册
 //            return StringResultType.RETURN_ATTRIBUTE_NAME;
@@ -1280,51 +1280,47 @@ public class UserAction extends GameStrutsAction {
 //            return StringResultType.RETURN_ATTRIBUTE_NAME;
 //        }
 
-        Map<String, Object> params = getRequest().getParameterMap();
-        if (params != null) {
-            StringBuilder stringBuilder = new StringBuilder("register params:");
-            for (Map.Entry<String, Object> kv : params.entrySet()) {
-                Object v = kv.getValue();
-                if (v instanceof String[]) {
-                    stringBuilder.append(kv.getKey()).append("=").append(((String[]) kv.getValue())[0]).append(",");
-                } else {
-                    stringBuilder.append(kv.getKey()).append("=").append(kv.getValue().toString()).append(",");
-                }
-
-            }
-            stringBuilder.append("ip=").append(ip);
-            LogUtil.i(stringBuilder.toString());
-        }
-
-        Map<String, Object> result = new HashMap<>();
         try {
-            String platform = getRequest().getParameter("p");
+            Map<String, String> params = UrlParamUtil.getParameters(getRequest());
+            if (params != null) {
+                StringBuilder stringBuilder = new StringBuilder("register params:");
+                for (Map.Entry<String, String> kv : params.entrySet()) {
+                    stringBuilder.append(kv.getKey()).append("=").append(kv.getValue().toString()).append(",");
+
+                }
+                stringBuilder.append("ip=").append(ip);
+                LogUtil.i(stringBuilder.toString());
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            String platform = params.get("p");
             if ("self".equals(platform)) {
-                result = this.selfRegister();
+                result = this.selfRegister(params);
             } else {
                 result.put("code", -3);
                 result.put("msg", LangMsg.getMsg(LangMsg.code_3));
-//                result = this.comRegister();
             }
+            JSONObject json = new JSONObject();
+            json.putAll(result);
+            OutputUtil.output(0, json, getRequest(), getResponse(), false);
         } catch (Exception e) {
-            exception(result, "register.exception", e);
+            OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+            return;
         }
-        this.result = JacksonUtil.writeValueAsString(result);
         LogUtil.i("register:" + this.result);
-        return StringResultType.RETURN_ATTRIBUTE_NAME;
     }
 
-    private Map<String, Object> selfRegister() throws Exception {
+    private Map<String, Object> selfRegister(Map<String, String> params) throws Exception {
         Map<String, Object> result = new HashMap<>();
-        String username = getRequest().getParameter("u");
-        String nickName = getRequest().getParameter("nickName");
-        String password = getRequest().getParameter("ps");
-        String sign = getRequest().getParameter("k");
-        long time = Long.valueOf(getRequest().getParameter("t"));
+        String username = params.get("u");
+        String nickName = params.get("nickName");
+        String password = params.get("ps");
+        String sign = params.get("k");
+        long time = NumberUtils.toLong(params.get("t"));
         String platform = "self";
-        String channel = getRequest().getParameter("c");// 渠道
-        String deviceCode = getRequest().getParameter("deviceCode");// 设备码
-        String headimgurl = getRequest().getParameter("headimgurl");// 头像
+        String channel = params.get("c");// 渠道
+        String deviceCode = params.get("deviceCode");// 设备码
+        String headimgurl = params.get("headimgurl");// 头像
 
         String secret = "mwFLeKLzNoL46dDn0vE2";
         StringBuilder md5 = new StringBuilder();
@@ -2273,49 +2269,55 @@ public class UserAction extends GameStrutsAction {
      * @author wwj
      */
     public void verifyCode()throws Exception{
-        String codeType = getRequest().getParameter("codeType");
-        String verifyCode= getRequest().getParameter("verifyCode");
-        UserMsgVerify msgVerify=null;
-        Long userId=null;
-        switch (codeType){
-            case "1"://一般验证，包括绑定
-            case "2"://解绑
-            case "3"://更改绑定
-                userId= Long.valueOf(getRequest().getParameter("userId"));
-                RegInfo user = userDao.getUser(userId);
-                if (!verifySessCode(user,userId))
-                    return;
-                msgVerify = userDao.getMsgVerifyByUid(userId);
-                break;
-            case "4"://忘记密码
-                msgVerify = userDao.getMsgVerifyByIp(getIpAddr(getRequest()));
-                userId=Long.valueOf(msgVerify.getUserId());
-                break;
-        }
-        if (msgVerify==null){
-            OutputUtil.output(1335, "验证码不存在", getRequest(), getResponse(), false);
+        try {
+            String codeType = getRequest().getParameter("codeType");
+            String verifyCode = getRequest().getParameter("verifyCode");
+            UserMsgVerify msgVerify = null;
+            Long userId = null;
+            switch (codeType) {
+                case "1"://一般验证，包括绑定
+                case "2"://解绑
+                case "3"://更改绑定
+                    userId = Long.valueOf(getRequest().getParameter("userId"));
+                    RegInfo user = userDao.getUser(userId);
+                    if (!verifySessCode(user, userId))
+                        return;
+                    msgVerify = userDao.getMsgVerifyByUid(userId);
+                    break;
+                case "4"://忘记密码
+                    msgVerify = userDao.getMsgVerifyByIp(getIpAddr(getRequest()));
+                    userId = Long.valueOf(msgVerify.getUserId());
+                    break;
+            }
+            if (msgVerify == null) {
+                OutputUtil.output(1335, "验证码不存在", getRequest(), getResponse(), false);
+                return;
+            }
+            if (System.currentTimeMillis() - msgVerify.getSendTime().getTime() > 600 * 1000 || !verifyCode.equals(msgVerify.getVerifyCode())) {
+                //验证码超时或者验证失败
+                OutputUtil.output(1333, "验证码超时或者验证失败", getRequest(), getResponse(), false);
+                return;
+            }
+            Map<String, Object> map = new HashMap<>();
+            switch (codeType) {
+                case "1"://一般验证，包括绑定和忘记密码时使用
+                case "3"://更改绑定
+                case "4"://忘记密码
+                    userDao.updateSmsFlag(userId, 1);
+                    OutputUtil.output(0, "验证成功", getRequest(), getResponse(), false);
+                    break;
+                case "2"://解绑
+                    map.put("phoneNum", null);
+                    map.put("phonePw", "");
+                    userDao.updateUser(userId, map);
+                    userDao.deleteSms(userId);
+                    OutputUtil.output(0, "解绑成功", getRequest(), getResponse(), false);
+                    break;
+            }
+        }catch (Exception e){
+            LOGGER.error("verifyCode|error|" + e.getMessage(), e);
+            OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
             return;
-        }
-        if(System.currentTimeMillis() - msgVerify.getSendTime().getTime()>600*1000||!verifyCode.equals(msgVerify.getVerifyCode())){
-            //验证码超时或者验证失败
-            OutputUtil.output(1333, "验证码超时或者验证失败", getRequest(), getResponse(), false);
-            return;
-        }
-        Map<String, Object> map = new HashMap<>();
-        switch (codeType){
-            case "1"://一般验证，包括绑定和忘记密码时使用
-            case "3"://更改绑定
-            case "4"://忘记密码
-                userDao.updateSmsFlag(userId,1);
-                OutputUtil.output(0, "验证成功", getRequest(), getResponse(), false);
-                break;
-            case "2"://解绑
-                map.put("phoneNum",null);
-                map.put("phonePw","");
-                userDao.updateUser(userId,map);
-                userDao.deleteSms(userId);
-                OutputUtil.output(0, "解绑成功", getRequest(), getResponse(), false);
-                break;
         }
     }
 
@@ -2340,57 +2342,63 @@ public class UserAction extends GameStrutsAction {
      * 验证短信成功后上传password
      */
     public void uploadPassword() throws Exception{
-        String uid=getRequest().getParameter("userId");
-        Long userId;
-        UserMsgVerify msgVerify;
-        int isGetAward=1;
-        RegInfo user;
-        if(uid==null||"".equals(uid)||"0".equals(uid)){
-            //Ip获取
-            msgVerify=userDao.getMsgVerifyByIp(getIpAddr(getRequest()));
-            userId=msgVerify.getUserId();
-            user = userDao.getUser(userId);
-        }else {
-            //验证userId
-            userId=Long.valueOf(uid);
-            user = userDao.getUser(userId);
-            if (!verifySessCode(user,userId))
+        try {
+            String uid = getRequest().getParameter("userId");
+            Long userId;
+            UserMsgVerify msgVerify;
+            int isGetAward = 1;
+            RegInfo user;
+            if (uid == null || "".equals(uid) || "0".equals(uid)) {
+                //Ip获取
+                msgVerify = userDao.getMsgVerifyByIp(getIpAddr(getRequest()));
+                userId = msgVerify.getUserId();
+                user = userDao.getUser(userId);
+            } else {
+                //验证userId
+                userId = Long.valueOf(uid);
+                user = userDao.getUser(userId);
+                if (!verifySessCode(user, userId))
+                    return;
+                msgVerify = userDao.getMsgVerifyByUid(userId);
+                isGetAward = user.getIsReceiveBDAward();
+            }
+            if (msgVerify == null || msgVerify.getIsUse() == 0) {
+                if (user.getPhoneNum() == null)
+                    OutputUtil.output(1334, "操作失败，请重新尝试", getRequest(), getResponse(), false);
                 return;
-            msgVerify = userDao.getMsgVerifyByUid(userId);
-            isGetAward=user.getIsReceiveBDAward();
-        }
-        if (msgVerify==null||msgVerify.getIsUse()==0){
-            if(user.getPhoneNum()==null)
-                OutputUtil.output(1334, "操作失败，请重新尝试", getRequest(), getResponse(), false);
-            return;
-        }
+            }
 
-        String phoneNum=msgVerify.getPhoneNum();
+            String phoneNum = msgVerify.getPhoneNum();
 //        if(!isPhoneNum(phoneNum)){
 //            OutputUtil.output(1402, "非法手机号", getRequest(), getResponse(), false);
 //            return;
 //        }
-        String password = getRequest().getParameter("password");
-        String errMsg=verifyPw(password);
-        if(errMsg!=null){
-            OutputUtil.output(1337, errMsg, getRequest(), getResponse(), false);
+            String password = getRequest().getParameter("password");
+            String errMsg = verifyPw(password);
+            if (errMsg != null) {
+                OutputUtil.output(1337, errMsg, getRequest(), getResponse(), false);
+                return;
+            }
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("phoneNum", phoneNum);
+            String md5pw = genPw(password);
+            map.put("phonePw", md5pw);
+            if (isGetAward == 0) {
+                map.put("isReceiveBDAward", 1);
+                GoldDao.getInstance().addUserGold(userId, 3000, 0, SourceType.bind_phone);
+            }
+            userDao.updateUser(userId, map);
+            userDao.deleteSms(userId);
+            if (isGetAward == 0)
+                OutputUtil.output(1340, "绑定成功获得3000豆子", getRequest(), getResponse(), false);
+            else
+                OutputUtil.output(0, "成功设置密码", getRequest(), getResponse(), false);
+        }catch (Exception e){
+            LOGGER.error("uploadPassword|error|" + e.getMessage(), e);
+            OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
             return;
         }
-
-        Map<String, Object> map = new HashMap<>();
-        map.put("phoneNum", phoneNum);
-        String md5pw = genPw(password);
-        map.put("phonePw",md5pw);
-        if(isGetAward==0){
-            map.put("isReceiveBDAward",1);
-            GoldDao.getInstance().addUserGold(userId,3000,0, SourceType.bind_phone);
-        }
-        userDao.updateUser(userId,map);
-        userDao.deleteSms(userId);
-        if(isGetAward==0)
-            OutputUtil.output(1340, "绑定成功获得3000豆子", getRequest(), getResponse(), false);
-        else
-            OutputUtil.output(0, "成功设置密码", getRequest(), getResponse(), false);
     }
 
     private boolean verifySessCode(RegInfo user,long userId){

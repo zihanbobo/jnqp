@@ -219,6 +219,27 @@ public class GameStrutsAction extends ActionSupport implements SessionAware, Ser
 
 	}
 
+	public boolean checkPdkSign(Map<String, String> map) {
+		String sytime = map.get("sytime");
+		String sign = map.get("sysign");
+		String md5 = MD5Util.getStringMD5(sytime + "7HGO4K61M8N2D9LARSPU");
+		if (md5.equals(sign)) {
+			return true;
+		} else {
+			if (checkHttpMd5(map)) {
+				return true;
+			}
+			return false;
+		}
+	}
+
+	public static boolean checkHttpMd5(Map<String, String> map) {
+		String sytime = map.get("sytime");
+		String sign = map.get("sysign");
+		String md5 = com.sy599.game.util.MD5Util.getStringMD5(sytime + "FD32RFCAFDSDASDF32", "utf-8");
+		return md5.equals(sign);
+	}
+
 	/**
 	 * 签名验证
 	 *

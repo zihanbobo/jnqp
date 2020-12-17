@@ -40,6 +40,7 @@ import com.sy.sanguo.game.pdkuai.manager.TaskManager;
 import com.sy.sanguo.game.pdkuai.staticdata.StaticDataManager;
 import com.sy.sanguo.game.pdkuai.util.LogUtil;
 import com.sy.sanguo.game.service.SysInfManager;
+import com.sy.sanguo.game.utils.HttpDataUtil;
 import com.sy.sanguo.game.utils.LoginUtil;
 import com.sy599.sanguo.util.GroupConfigUtil;
 import com.sy599.sanguo.util.ResourcesConfigsUtil;
@@ -181,6 +182,16 @@ public class InitData {
             if(game_config_properties.containsKey("aes_key_phoneNum")) {
                 LoginUtil.setAESKeyPhoneNum((String) game_config_properties.get("aes_key_phoneNum"));
             }
+
+			if(game_config_properties.containsKey("http_data_aes_switch")) {
+				HttpDataUtil.setHttpDataAESSwitch((String)game_config_properties.get("http_data_aes_switch"));
+			}
+			if(game_config_properties.containsKey("http_data_aes_id")) {
+				HttpDataUtil.setHttpDataAESId((String)game_config_properties.get("http_data_aes_id"));
+			}
+			if(game_config_properties.containsKey("http_data_aes_key")) {
+				HttpDataUtil.setHttpDataAESKey((String)game_config_properties.get("http_data_aes_key"));
+			}
 		} catch (Exception e) {
 			LogUtil.e("initDataBase err:", e);
 		}
