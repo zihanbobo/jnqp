@@ -1,5 +1,7 @@
 package com.sy.sanguo.common.util;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.sy.mainland.util.PropertiesCacheUtil;
 import com.sy.sanguo.common.init.InitData;
 import com.sy.sanguo.game.utils.HttpDataUtil;
@@ -121,6 +123,15 @@ public class OutputUtil {
 	public final static void output(Object code, Object message, HttpServletRequest request,
                                     HttpServletResponse response, boolean isWeb) {
 		output(true, code, message, request, response, isWeb);
+	}
+
+	public final static void outputJson(int code, JSONObject json, HttpServletRequest request, HttpServletResponse response, boolean isWeb) {
+		json.put("code",code);
+		output(json, request, response, null, isWeb);
+	}
+
+	public final static void outputJsonArray(JSONArray json, HttpServletRequest request, HttpServletResponse response, boolean isWeb) {
+		output(json, request, response, null, isWeb);
 	}
 
 	/**

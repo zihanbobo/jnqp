@@ -1302,7 +1302,7 @@ public class UserAction extends GameStrutsAction {
             }
             JSONObject json = new JSONObject();
             json.putAll(result);
-            OutputUtil.output(0, json, getRequest(), getResponse(), false);
+            OutputUtil.outputJson(0, json, getRequest(), getResponse(), false);
         } catch (Exception e) {
             OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
             return;

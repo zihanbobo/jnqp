@@ -1,6 +1,7 @@
 package com.sy.sanguo.game.pdkuai.action;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.sy.mainland.util.CommonUtil;
 import com.sy.mainland.util.PropertiesCacheUtil;
@@ -411,7 +412,7 @@ public class PdkAction extends GameStrutsAction {
 						JSONObject json = new JSONObject();
 						json.put("msg", "分享奖励金币*：" + gold);
 						json.put("gold", gold);
-						OutputUtil.output(0, json, getRequest(), getResponse(), false);
+						OutputUtil.outputJson(0, json, getRequest(), getResponse(), false);
 					}
 				} catch (Exception e) {
 					GameBackLogger.SYS_LOG.error("share|error|" + userId, e);
@@ -778,13 +779,13 @@ public class PdkAction extends GameStrutsAction {
 				return;
 			}
 
-			int gameType = NumberUtils.toInt("gameType", 0);
-			long tableId = NumberUtils.toLong("tableId", 0);
-			long userId = NumberUtils.toLong("userId", 0);
+			int gameType = NumberUtils.toInt(params.get("gameType"), 0);
+			long tableId = NumberUtils.toLong(params.get("tableId"), 0);
+			long userId = NumberUtils.toLong(params.get("userId"), 0);
 
-			long modeId = NumberUtils.toLong("modeId", 0);//牌局模式ID，创建房间参数具体信息需查看数据库
+			long modeId = NumberUtils.toLong(params.get("modeId"), 0);//牌局模式ID，创建房间参数具体信息需查看数据库
 
-			int serverType = NumberUtils.toInt("serverType", 1);//游戏服类型0练习场1普通场
+			int serverType = NumberUtils.toInt(params.get("serverType"), 1);//游戏服类型0练习场1普通场
 
 			StringBuilder strBuilder = new StringBuilder("load server:");
 			strBuilder.append("gameType=").append(gameType);
@@ -909,7 +910,7 @@ public class PdkAction extends GameStrutsAction {
 			serverMap.put("playType", playType);
 			json.put("server", serverMap);
 			json.put("blockIconTime", SharedConstants.blockIconTime);
-			OutputUtil.output(0, json, getRequest(), getResponse(), false);
+			OutputUtil.outputJson(0, json, getRequest(), getResponse(), false);
 
 			strBuilder.append(",result=").append(result);
 			LogUtil.i(strBuilder.toString());
@@ -1042,7 +1043,7 @@ public class PdkAction extends GameStrutsAction {
 				json.put("connectHost1", "");
 				json.put("connectHost2", "");
 			}
-			OutputUtil.output(0, json, getRequest(), getResponse(), false);
+			OutputUtil.outputJson(0, json, getRequest(), getResponse(), false);
 		}catch (Exception e){
 			LOGGER.error("error|" + e.getMessage(), e);
 			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
@@ -1077,7 +1078,7 @@ public class PdkAction extends GameStrutsAction {
 			json.put("playLog", playLog);
 			json.put("userId", userId);
 			json.put("logId", logId);
-			OutputUtil.output(0, json, getRequest(), getResponse(), false);
+			OutputUtil.outputJson(0, json, getRequest(), getResponse(), false);
 		}catch (Exception e){
 			LOGGER.error("error|" + e.getMessage(), e);
 			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
@@ -1180,7 +1181,7 @@ public class PdkAction extends GameStrutsAction {
 				json.put("playLog", playLog);
 				json.put("logType", logType);
 				json.put("logId", logId);
-				OutputUtil.output(0, json, getRequest(), getResponse(), false);
+				OutputUtil.outputJson(0, json, getRequest(), getResponse(), false);
 				return;
 			} catch (SQLException e) {
 				GameBackLogger.SYS_LOG.error("getUserPlayLog err", e);
@@ -2005,7 +2006,8 @@ public class PdkAction extends GameStrutsAction {
 
 			String payBindId = params.get("payBindId");
 			List list = userDao.getBindAllUserMsg(Long.parseLong(payBindId));
-			OutputUtil.output(0, JacksonUtil.writeValueAsString(list), getRequest(), getResponse(), false);
+			JSONArray json = new JSONArray(list);
+			OutputUtil.outputJsonArray(json, getRequest(), getResponse(), false);
 			LOGGER.info("getBackStageManagement|userReport|succ|");
 		} catch (Exception e) {
 			LOGGER.error("error|" + e.getMessage(), e);
@@ -2021,7 +2023,7 @@ public class PdkAction extends GameStrutsAction {
 		Map<String, String> params = null;
 		try {
 			params = UrlParamUtil.getParameters(getRequest());
-			LOGGER.info("getBackStageManagement|params:{}", params);
+			LOGGER.info("getBindOneMsg|params:{}", params);
 			if (!checkPdkSign(params)) {
 				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
 				return;
@@ -2038,8 +2040,10 @@ public class PdkAction extends GameStrutsAction {
 			Map map = userDao.getBindOneMsg(Long.parseLong(payBindId),armId);
 			if(map==null)
 				map=new HashMap();
-			OutputUtil.output(0, JacksonUtil.writeValueAsString(map), getRequest(), getResponse(), false);
-			LOGGER.info("getBackStageManagement|userReport|succ|");
+			JSONObject json = new JSONObject();
+			json.putAll(map);
+			OutputUtil.outputJson(0,json, getRequest(), getResponse(), false);
+			LOGGER.info("getBindOneMsg|getBindOneMsg|succ|");
 		} catch (Exception e) {
 			LOGGER.error("error|" + e.getMessage(), e);
 			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
@@ -2054,7 +2058,7 @@ public class PdkAction extends GameStrutsAction {
 		Map<String, String> params = null;
 		try {
 			params = UrlParamUtil.getParameters(getRequest());
-			LOGGER.info("getBackStageManagement|params:{}", params);
+			LOGGER.info("openCreateGroup|params:{}", params);
 			if (!checkPdkSign(params)) {
 				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
 				return;
@@ -2072,8 +2076,8 @@ public class PdkAction extends GameStrutsAction {
 			}
 			JSONObject json = new JSONObject();
 			json.put("msg", LangMsg.getMsg(LangMsg.code_0));
-			OutputUtil.output(0, json, getRequest(), getResponse(), false);
-			LOGGER.info("openCreateGroup|userReport|succ|");
+			OutputUtil.outputJson(0, json, getRequest(), getResponse(), false);
+			LOGGER.info("openCreateGroup|openCreateGroup|succ|");
 		} catch (Exception e) {
 			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
 			return;
@@ -2083,43 +2087,40 @@ public class PdkAction extends GameStrutsAction {
 	/**
 	 * 修改靓号
 	 */
-	public String updateGroupId() {
-		Map<String, Object> result = new HashMap<>();
+	public void updateGroupId() {
+		Map<String, String> params = null;
 		try {
-			if (!checkPdkSign()) {
-				this.writeMsg(-1, result);
-				result.put("msg", "验证失败");
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+			params = UrlParamUtil.getParameters(getRequest());
+			LOGGER.info("updateGroupId|params:{}", params);
+			if (!checkPdkSign(params)) {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
+				return;
 			}
 			long userId = this.getLong("userId", 0);
 			RegInfo user = userDao.getUser(userId);
 			if (user == null) {
-				result.put("msg", "没有找到ID:" + userId + "的玩家");
-				this.writeMsg(-1, result);
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_25), getRequest(), getResponse(), false);
+				return;
 			}
 			int beforeId= Integer.parseInt(this.getString("beforeId"));
 			int afterId= Integer.parseInt(this.getString("afterId"));
 			if(userDao.selectGroupBindId(beforeId)!=userId){
-				result.put("msg", "无权操作" + userId );
-				this.writeMsg(-1, result);
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_7), getRequest(), getResponse(), false);
+				return;
 			}
 			if(userDao.updateGroupId(beforeId,afterId)==0){
-				result.put("msg", "修改失败");
-				this.writeMsg(-1, result);
-				return StringResultType.RETURN_ATTRIBUTE_NAME;
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+				return;
 			}
 			userDao.updateGroupAllUserId(beforeId,afterId);
-			result.put("msg", LangMsg.getMsg(LangMsg.code_0));
-			this.writeMsg(0, result);
-			LOGGER.info("updateGroupId|userReport|succ|");
+			JSONObject json = new JSONObject();
+			json.put("msg", LangMsg.getMsg(LangMsg.code_0));
+			OutputUtil.outputJson(0, json, getRequest(), getResponse(), false);
+			LOGGER.info("updateGroupId|updateGroupId|succ|");
 		} catch (Exception e) {
-			result.put("msg", "系统异常");
-			this.writeMsg(-1, result);
+			OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
 			GameBackLogger.SYS_LOG.error("error", e);
 		}
-		return StringResultType.RETURN_ATTRIBUTE_NAME;
 	}
 
 	/**
@@ -2129,7 +2130,7 @@ public class PdkAction extends GameStrutsAction {
 		Map<String, String> params = null;
 		try {
 			params = UrlParamUtil.getParameters(getRequest());
-			LOGGER.info("getBackStageManagement|params:{}", params);
+			LOGGER.info("queryBindConsumption|params:{}", params);
 			if (!checkPdkSign(params)) {
 				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_1), getRequest(), getResponse(), false);
 				return;
@@ -2144,8 +2145,9 @@ public class PdkAction extends GameStrutsAction {
 			Long dataDate = NumberUtils.toLong(params.get("dataDate"),0);
 			if(dataDate==null)
 				dataDate=Long.valueOf(new SimpleDateFormat("yyyyMMdd").format(new Date()));
-			List<GroupDayConsumption> list = userDao.getBindAllGroupMsg(payBindId,dataDate);
-			OutputUtil.output(0, JacksonUtil.writeValueAsString(list), getRequest(), getResponse(), false);
+			List list = userDao.getBindAllGroupMsg(payBindId,dataDate);
+			JSONArray json = new JSONArray(list);
+			OutputUtil.outputJsonArray(json, getRequest(), getResponse(), false);
 			LOGGER.info("queryBindConsumption|userReport|succ|");
 		} catch (Exception e) {
 			LOGGER.error("error|" + e.getMessage(), e);
@@ -2174,6 +2176,15 @@ public class PdkAction extends GameStrutsAction {
 			}
 			Integer payBindId = NumberUtils.toInt(params.get("payBindId"),0);
 			userDao.updatebindInviteId(payBindId,userId);
+			if(userDao.updatebindInviteId(payBindId,userId)>0){
+				JSONObject json = new JSONObject();
+				json.put("msg", LangMsg.getMsg(LangMsg.code_0));
+				OutputUtil.outputJson(0, json, getRequest(), getResponse(), false);
+				LOGGER.info("bindInviteId|userReport|succ|");
+			}else {
+				OutputUtil.output(-1, LangMsg.getMsg(LangMsg.code_4), getRequest(), getResponse(), false);
+				return;
+			}
 			OutputUtil.output(0, LangMsg.getMsg(LangMsg.code_0), getRequest(), getResponse(), false);
 		} catch (Exception e) {
 			LOGGER.error("error|" + e.getMessage(), e);
@@ -2181,4 +2192,5 @@ public class PdkAction extends GameStrutsAction {
 			return;
 		}
 	}
+
 }
